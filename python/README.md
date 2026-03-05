@@ -72,8 +72,6 @@ agentsecrets proxy start
 > tokens, workspace context, and proxy lifecycle. The SDK delegates all credential
 > operations to the running proxy so that values never enter your Python process.
 
-For CI/CD and automated environments where the CLI cannot run interactively, set `AGENTSECRETS_TOKEN` instead — see [CI/CD and Production](#cicd-and-production).
-
 ---
 
 ## Install
@@ -338,7 +336,6 @@ client = AgentSecrets(auto_start=False)                       # no proxy auto-st
 Environment variables read automatically — no constructor argument needed:
 
 ```bash
-AGENTSECRETS_TOKEN=as_tok_live_abc123    # service token (CI/CD, production servers)
 AGENTSECRETS_PORT=9000                   # override proxy port
 AGENTSECRETS_WORKSPACE=Acme             # override active workspace
 AGENTSECRETS_PROJECT=payments            # override active project
@@ -346,31 +343,11 @@ AGENTSECRETS_PROJECT=payments            # override active project
 
 ---
 
-## CI/CD and Production
+## CI/CD and Production (Coming Soon)
 
-On machines where you cannot run the CLI interactively — CI/CD pipelines, production servers, Docker containers — use a service token instead of the local proxy.
+On machines where you cannot run the CLI interactively — CI/CD pipelines, production servers, Docker containers — you will soon be able to use a service token instead of the local proxy.
 
-Generate a token once from the CLI:
-
-```bash
-agentsecrets token create --name "github-actions" --ttl 90d
-# as_tok_live_K7mNpQ3x...  (shown once, store it immediately)
-```
-
-Set it as an environment variable in your environment:
-
-```bash
-# GitHub Actions secret, server environment, Docker run flag, etc.
-AGENTSECRETS_TOKEN=as_tok_live_K7mNpQ3x...
-```
-
-The SDK detects the token automatically. No other configuration needed. Your application code is unchanged.
-
-The token grants the ability to make the proxy inject credentials. It does not grant the ability to retrieve credential values. The zero-knowledge guarantee holds in CI/CD exactly as it does locally.
-
-**Where this works today:** Persistent servers (VPS, dedicated), GitHub Actions, CI runners with a persistent OS, Docker containers with the token set.
-
-**Coming soon:** Serverless environments (Lambda, Vercel, Cloudflare Workers) — requires the cloud resolver, currently on the roadmap.
+This path is currently on the roadmap and will allow the SDK to authenticate directly to the AgentSecrets cloud resolver.
 
 ---
 
@@ -393,7 +370,7 @@ try:
         bearer="STRIPE_KEY"
     )
 except AgentSecretsNotRunning:
-    # Proxy not running and no AGENTSECRETS_TOKEN set
+    # Proxy not running
     # Error message includes full install and setup instructions
     raise
 except DomainNotAllowed as e:
@@ -407,7 +384,7 @@ except UpstreamError as e:
 
 | Exception | Cause | Recovery |
 |---|---|---|
-| `AgentSecretsNotRunning` | No proxy, no token | `agentsecrets proxy start` or set `AGENTSECRETS_TOKEN` |
+| `AgentSecretsNotRunning` | Proxy not running | `agentsecrets proxy start` |
 | `DomainNotAllowed` | Domain not on workspace allowlist | `agentsecrets workspace allowlist add <domain>` |
 | `SecretNotFound` | Key not in active project | `agentsecrets secrets set <KEY>=<value>` |
 | `ProxyConnectionError` | Proxy running but unreachable | `agentsecrets proxy status` |

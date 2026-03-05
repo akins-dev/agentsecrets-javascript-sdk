@@ -67,8 +67,8 @@ LangChain tools, CrewAI tools, AutoGen function tools — any agent framework in
 **Multi-tenant developer tools**
 The scoped workspace context lets a single tool operate across multiple workspaces — multiple clients, multiple credential sets — without global state changes and without the tool ever holding credential values. Each workspace is isolated. Each call is audited.
 
-**CI/CD and deployment pipelines**
-Service tokens let automated environments authenticate to AgentSecrets without an interactive session or OS keychain. One token, set as an environment variable, replaces every credential that would otherwise live in pipeline configuration files.
+**CI/CD and deployment pipelines (Coming soon)**
+Service tokens will let automated environments authenticate to AgentSecrets without an interactive session or OS keychain. One token, set as an environment variable, replaces every credential that would otherwise live in pipeline configuration files.
 
 **Autonomous agent workflows**
 The management layer gives agents full programmatic control of the credentials lifecycle — checking drift, syncing from cloud, switching workspaces, reading audit logs — all without ever accessing a credential value. The agent operates the infrastructure. It never sees what the infrastructure holds.
@@ -95,9 +95,9 @@ Authentication is resolved from the environment — no credentials are passed in
 
 1. **Local proxy running** — SDK connects to `localhost:8765`, inherits the session from `agentsecrets login`. This is the path for local development, MCP servers, and persistent servers.
 
-2. **`AGENTSECRETS_TOKEN` set** — SDK authenticates directly to the AgentSecrets cloud using the service token. This is the path for CI/CD pipelines, Docker containers, and automated environments.
+2. **Cloud Resolver (Coming soon)** — SDK authenticates directly to the AgentSecrets cloud using a service token (`AGENTSECRETS_TOKEN`). This will be the path for CI/CD pipelines, Docker containers, and automated environments.
 
-3. **Neither** — SDK raises `AgentSecretsNotRunning` with actionable instructions.
+3. **No active session** — SDK raises `AgentSecretsNotRunning` with actionable instructions.
 
 The SDK never accepts a username, password, or API key as a parameter. Authentication happens outside the SDK, in the environment. This is intentional — if the SDK accepted credentials as parameters, developers would eventually hardcode them, which is the exact problem this infrastructure exists to solve.
 

@@ -2,9 +2,8 @@
 
 Resolution order:
 1. Probe the proxy health endpoint → if running, use it.
-2. Check ``AGENTSECRETS_TOKEN`` env var → if set, use token auth.
-3. If ``auto_start`` is True, locate the binary and start the proxy.
-4. Otherwise raise ``AgentSecretsNotRunning``.
+2. If ``auto_start`` is True, locate the binary and start the proxy.
+3. Otherwise raise ``AgentSecretsNotRunning``.
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ class AuthContext:
 
     port: int
     project: str
-    method: Literal["proxy", "token"]
+    method: Literal["proxy"]
 
 
 def resolve(
@@ -48,7 +47,7 @@ def resolve(
     Raises
     ------
     AgentSecretsNotRunning
-        If neither the proxy nor a token is available.
+        If the proxy is not available.
     """
     # 1. Running proxy?
     try:
@@ -57,12 +56,7 @@ def resolve(
     except ProxyConnectionError:
         pass
 
-    # 2. Environment token?
-    token = os.environ.get("AGENTSECRETS_TOKEN")
-    if token:
-        return AuthContext(port=port, project="", method="token")
-
-    # 3. Auto-start?
+    # 2. Auto-start?
     if auto_start_proxy:
         auto_start(port)
         status = wait_for_ready(port)

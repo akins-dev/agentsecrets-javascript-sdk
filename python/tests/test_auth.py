@@ -23,16 +23,7 @@ class TestResolve:
         assert ctx.port == 8765
         assert ctx.project == "test"
 
-    def test_token_env_returns_token_auth(self) -> None:
-        with (
-            patch("agentsecrets.auth.health_check", side_effect=ProxyConnectionError(8765, "refused")),
-            patch.dict("os.environ", {"AGENTSECRETS_TOKEN": "test-token"}),
-        ):
-            ctx = resolve(8765, auto_start_proxy=False)
-
-        assert ctx.method == "token"
-
-    def test_no_proxy_no_token_raises(self) -> None:
+    def test_no_proxy_raises(self) -> None:
         with (
             patch("agentsecrets.auth.health_check", side_effect=ProxyConnectionError(8765, "refused")),
             patch.dict("os.environ", {}, clear=True),

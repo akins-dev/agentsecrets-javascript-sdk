@@ -13,6 +13,7 @@ import { promisify } from "node:util";
 import {
   AgentSecretsResponse,
   AgentSecretsError,
+  
   AgentSecretsNotRunning,
   ProxyConnectionError,
   CLINotFound,
@@ -48,45 +49,77 @@ function mapProxyError(statusCode: number, bodyText: string, url: string): Agent
 
   let errorMsg = truncated;
   try {
-    const data = JSON.parse(truncated) as Record<string, string>;
-    errorMsg = data["error"] ?? data["message"] ?? truncated;
+    const data = JSON.parse(truncated) as Record<string, any>;
+    let errVal = data["error"] ?? data["message"];
+    if (errVal && typeof errVal === "object" && typeof errVal["message"] === "string") {
+      errVal = errVal["message"];
+    }
+    if (typeof errVal === "string") {
+      errorMsg = errVal;
+    } else if (errVal !== undefined) {
+      errorMsg = JSON.stringify(errVal);
+    }
   } catch { /* use raw text */ }
 
   if (statusCode === 400) {
-    return new AgentSecretsError(
-      `Proxy rejected the request (400): ${errorMsg} — check that you passed an auth style (bearer, basic, header, query, bodyField, or formField).`
-    );
+    if (truncated.includes("Proxy rejected") || truncated.includes("auth style") || truncated.includes("missing")) {
+      return new AgentSecretsError(
+        `Proxy rejected the request (400): ${errorMsg} — check that you passed an auth style (bearer, basic, header, query, bodyField, or formField).`
+      );
+    }
+    return new AgentSecretsError(`Upstream API error (400 Bad Request): ${errorMsg}`, {
+      fixHint: "Check the parameters and data you sent to the API."
+    });
+  }
+
+  if (statusCode === 401) {
+    return new AgentSecretsError(`Upstream API error (401 Unauthorized): ${errorMsg}`, {
+      fixHint: "Check that your secret value in AgentSecrets is correct and valid for this API."
+    });
   }
 
   if (statusCode === 403) {
-    // Extract domain from the already-parsed error message.
-    // The Go proxy sets: { "error": "domain_not_in_allowlist", "domain": "...", "message": "..." }
-    // errorMsg was set from data["error"] above — we need data["domain"] separately.
-    let domain = errorMsg;
-    try {
-      const raw = JSON.parse(truncated) as Record<string, string>;
-      domain = raw["domain"] ?? raw["message"] ?? errorMsg;
-    } catch { /* use errorMsg */ }
-    return new DomainNotAllowed(domain);
+    if (truncated.toLowerCase().includes("allowlist") || truncated.includes("domain_not_in_allowlist")) {
+      let domain = errorMsg;
+      try {
+        const raw = JSON.parse(truncated) as Record<string, string>;
+        domain = raw["domain"] ?? raw["message"] ?? errorMsg;
+      } catch { /* use errorMsg */ }
+      return new DomainNotAllowed(domain);
+    }
+    return new AgentSecretsError(`Upstream API error (403 Forbidden): ${errorMsg}`, {
+      fixHint: "The API key might not have permission to access this resource."
+    });
   }
 
-  if (statusCode === 502) {
-    // Go proxy wraps ALL engine errors as 502 (server.go:115).
-    // "secret not found" is detected by matching engine.go:202 message format:
-    //   "secret 'KEY' not found in keychain — ..."
-    const lower = errorMsg.toLowerCase();
-    if (
-      lower.includes("not found in keychain") ||
-      (lower.includes("secret '") && lower.includes("not found"))
-    ) {
-      const match = errorMsg.match(/secret '([^']+)'/);
-      const key = match?.[1] ?? errorMsg;
-      return new SecretNotFound(key);
+  if (statusCode === 404) {
+    return new AgentSecretsError(`Upstream API error (404 Not Found): ${errorMsg}`, {
+      fixHint: "The requested API endpoint or resource does not exist. Check the URL."
+    });
+  }
+
+  if (statusCode === 429) {
+    return new AgentSecretsError(`Upstream API error (429 Too Many Requests): ${errorMsg}`, {
+      fixHint: "You have hit the API's rate limit. Slow down your requests."
+    });
+  }
+
+  if (statusCode >= 500) {
+    if (statusCode === 502) {
+      const lower = errorMsg.toLowerCase();
+      if (
+        lower.includes("not found in keychain") ||
+        (lower.includes("secret '") && lower.includes("not found"))
+      ) {
+        const match = errorMsg.match(/secret '([^']+)'/);
+        const key = match?.[1] ?? errorMsg;
+        return new SecretNotFound(key);
+      }
     }
     return new UpstreamError(statusCode, truncated, url);
   }
 
-  return new AgentSecretsError(`Proxy error ${statusCode}: ${errorMsg}`);
+  return new AgentSecretsError(`Upstream API error (${statusCode}): ${errorMsg}`);
 }
 
 // ─── Health check ─────────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@
  *         agentsecrets proxy start
  */
 
-import { AgentSecrets, AgentSecretsNotRunning, SecretNotFound } from "../src/client.ts";
+import { AgentSecrets, AgentSecretsNotRunning, SecretNotFound } from "../dist/index.js";
 
 const client = new AgentSecrets();
 

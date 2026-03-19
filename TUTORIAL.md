@@ -327,3 +327,4 @@ Individual sections skip gracefully if prerequisites aren't met — you'll see `
 **`ERR_MODULE_NOT_FOUND` for `.js` files** — You're running source files directly with `--experimental-strip-types`. Use `.ts` extensions in imports, not `.js`.
 
 **`Cannot find module 'node:test'`** — Run `npm install` to install `@types/node`.
+

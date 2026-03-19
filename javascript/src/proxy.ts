@@ -8,16 +8,16 @@
 import type { CallOptions } from "./types.js";
 
 export const DEFAULT_PORT = 8765;
-export const PROXY_PATH = "/proxy";
+export const PROXY_PATH  = "/proxy";
 /** /health not used — health check uses `agentsecrets proxy status` CLI command instead */
 export const HEALTH_PATH = "/health"; // kept for reference, not used in SDK
 
 export const PROXY_HEADERS = {
-  TARGET_URL: "X-AS-Target-URL",
-  METHOD: "X-AS-Method",
-  AGENT_ID: "X-AS-Agent-ID",
+  TARGET_URL:    "X-AS-Target-URL",
+  METHOD:        "X-AS-Method",
+  AGENT_ID:      "X-AS-Agent-ID",
   INJECT_BEARER: "X-AS-Inject-Bearer",
-  INJECT_BASIC: "X-AS-Inject-Basic",
+  INJECT_BASIC:  "X-AS-Inject-Basic",
 } as const;
 
 // ─── URL validation ───────────────────────────────────────────────────────────
@@ -34,9 +34,7 @@ export function validateUrl(url: string): void {
     throw new Error(`Invalid URL: "${url}"`);
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error(
-      `URL must use http or https — got "${parsed.protocol}" in "${url}"`,
-    );
+    throw new Error(`URL must use http or https — got "${parsed.protocol}" in "${url}"`);
   }
 }
 
@@ -54,14 +52,14 @@ export function sanitiseHeaderKey(key: string, context: string): void {
   if (/[\r\n: \t]/.test(key)) {
     throw new Error(
       `${context} key "${key}" contains illegal characters (\\r, \\n, :, or whitespace). ` +
-        "Header injection is not allowed.",
+      "Header injection is not allowed."
     );
   }
   // Prevent constructing a second X-AS-Inject-Bearer etc. via a crafted key name
   if (/^x-as-inject/i.test(key)) {
     throw new Error(
       `${context} key "${key}" must not start with "X-AS-Inject" — ` +
-        "this would shadow proxy control headers.",
+      "this would shadow proxy control headers."
     );
   }
 }
@@ -77,10 +75,7 @@ export function sanitiseHeaderKey(key: string, context: string): void {
  *   Body field:     X-AS-Inject-Body-{path}          = SECRET_KEY_NAME
  *   Form field:     X-AS-Inject-Form-{key}           = SECRET_KEY_NAME
  */
-export function buildProxyHeaders(
-  opts: CallOptions,
-  method: string,
-): Record<string, string> {
+export function buildProxyHeaders(opts: CallOptions, method: string): Record<string, string> {
   validateUrl(opts.url);
 
   const headers: Record<string, string> = {
@@ -89,7 +84,7 @@ export function buildProxyHeaders(
   };
 
   if (opts.bearer) headers[PROXY_HEADERS.INJECT_BEARER] = opts.bearer;
-  if (opts.basic) headers[PROXY_HEADERS.INJECT_BASIC] = opts.basic;
+  if (opts.basic)  headers[PROXY_HEADERS.INJECT_BASIC]  = opts.basic;
 
   if (opts.header) {
     for (const [headerName, secretKey] of Object.entries(opts.header)) {

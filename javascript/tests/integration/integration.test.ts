@@ -17,7 +17,8 @@
  *   node --experimental-strip-types tests/integration/integration.test.ts
  */
 
-import { AgentSecrets, AgentSecretsResponse, SDK_VERSION } from "../../src/index.ts";
+import { AgentSecrets } from "../../src/client.ts";
+import { AgentSecretsResponse, SDK_VERSION } from "../../src/types.ts";
 import { MockAgentSecrets } from "../../src/testing/mock.ts";
 import {
   AgentSecretsNotRunning,
@@ -209,7 +210,7 @@ function testResponseModel() {
 
 function testHeaderInjectionSafety() {
   section("5. Header Injection Safety");
-  const { buildProxyHeaders, validateUrl, sanitiseHeaderKey } = require("../../src/proxy.ts");
+  const { buildProxyHeaders, validateUrl, sanitiseHeaderKey } = await import("../../src/proxy.ts");
 
   // URL validation
   const badUrls = ["file:///etc/passwd", "data:text/html,<x>", "javascript:alert(1)", "not-a-url"];

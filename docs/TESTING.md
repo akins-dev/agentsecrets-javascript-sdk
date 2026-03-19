@@ -5,26 +5,30 @@
 
 ---
 
-Unit tests — no proxy, no network, no CLI required:
+## Unit Tests
+
+No proxy, no network, no CLI required. Run these first.
 
 ```bash
 npm install
-node --test --experimental-strip-types tests/unit/proxy.test.ts
+npm test
+# or directly:
+node --experimental-strip-types tests/unit/proxy.test.ts
 ```
 
-Typecheck everything (src + tests + examples):
+86 assertions covering all auth styles, all error classes, URL validation, header sanitisation, `AgentSecretsResponse`, and zero-knowledge structural guarantees.
+
+---
+
+## Integration Tests
+
+Run manually against a live proxy before opening a PR.
+
+### Prerequisites
 
 ```bash
-npx tsc --project tsconfig.dev.json
-```
-
-Integration tests — run manually against a live proxy before opening a PR.
-
-**Prerequisites:**
-
-```bash
-# Ensure the CLI is installed and initialized — see Prerequisites above
-# or the CLI docs at https://github.com/The-17/agentsecrets
+# Ensure the CLI is installed and initialized
+# Full setup guide: https://agentsecrets.theseventeen.co/docs
 
 # If you don't have a project yet:
 agentsecrets project create test
@@ -34,41 +38,72 @@ agentsecrets workspace allowlist add httpbin.org  # used as a safe echo target
 agentsecrets proxy start
 ```
 
-No specific workspace or project name is required — the test uses whatever is currently active.
+No specific workspace or project name required — the test uses whatever is currently active.
+
+### Run
 
 ```bash
+npm run test:integration
+# or directly:
 node --experimental-strip-types tests/integration/integration.test.ts
 ```
 
-Individual sections skip gracefully if prerequisites aren't met.
+Individual sections skip gracefully if prerequisites aren't met — you'll see `○ skipped` lines for anything that needs the proxy or a live secret.
+
+### What it tests
+
+| Section | Needs proxy? |
+|---------|-------------|
+| Imports & version | No |
+| Client construction | No |
+| Error quality | No |
+| Response model | No |
+| Header injection safety | No |
+| Mock client | No |
+| Live proxy calls (httpbin.org) | Yes |
 
 ---
 
+## Examples
 
-## Running the Examples
+End-to-end scripts that verify the SDK works against real APIs.
 
-End-to-end scripts that verify the SDK works against real APIs with a live proxy.
-
-**Setup:**
-
-Make sure you have the AgentSecrets CLI installed and initialized — see the [Prerequisites](#prerequisites) section above or the [CLI docs](https://github.com/The-17/agentsecrets).
+### Prerequisites
 
 ```bash
-# If you haven't already: agentsecrets init → workspace create → project create
+# Ensure the CLI is installed and initialized
+# Full setup guide: https://agentsecrets.theseventeen.co/docs
+
+# If you don't have a project yet:
+agentsecrets project create my-app
+
 agentsecrets secrets set STRIPE_KEY=sk_live_...
 agentsecrets secrets set OPENAI_KEY=sk-proj-...
 agentsecrets secrets set GITHUB_TOKEN=ghp_...
 agentsecrets proxy start   # keep running in a separate terminal
 ```
 
-**Run:**
+### Run
 
 ```bash
-node --experimental-strip-types examples/stripe.ts   # bearer + form-encoded POST
-node --experimental-strip-types examples/openai.ts   # bearer + JSON body POST
-node --experimental-strip-types examples/github.ts   # bearer + custom headers
+npm run examples:stripe   # bearer + form-encoded POST → Stripe API
+npm run examples:openai   # bearer + JSON body POST → OpenAI API
+npm run examples:github   # bearer + custom headers → GitHub API
+
+# or directly:
+node --experimental-strip-types examples/stripe.ts
+node --experimental-strip-types examples/openai.ts
+node --experimental-strip-types examples/github.ts
 ```
 
-All three should exit cleanly and print status 200.
+All three should exit cleanly and print `Status: 200`.
 
 ---
+
+## Typechecking
+
+```bash
+npx tsc --project tsconfig.dev.json
+```
+
+Typechecks `src/`, `tests/`, and `examples/` together using `allowImportingTsExtensions`.

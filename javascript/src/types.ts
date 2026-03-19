@@ -75,9 +75,9 @@ export class AgentSecretsResponse<T = unknown> {
       const preview = this.text.slice(0, 120).split("\n").join(" ");
       throw new SyntaxError(
         `AgentSecretsResponse.json() failed: response is not valid JSON.\n` +
-          `Status: ${this.statusCode}  Content-Type: ${this.headers["content-type"] ?? "unknown"}\n` +
-          `Body preview: ${preview}\n` +
-          `Use response.text to inspect the raw response.`,
+        `Status: ${this.statusCode}  Content-Type: ${this.headers["content-type"] ?? "unknown"}\n` +
+        `Body preview: ${preview}\n` +
+        `Use response.text to inspect the raw response.`
       );
     }
   }
@@ -170,9 +170,7 @@ export class CLIError extends AgentSecretsError {
   readonly exitCode: number;
   readonly stderr: string;
   constructor(command: string, exitCode: number, stderr: string) {
-    super(
-      `CLI command failed (exit ${exitCode}): agentsecrets ${command}\n${stderr}`,
-    );
+    super(`CLI command failed (exit ${exitCode}): agentsecrets ${command}\n${stderr}`);
     this.name = "CLIError";
     this.command = command;
     this.exitCode = exitCode;
@@ -229,10 +227,7 @@ export class UpstreamError extends AgentSecretsError {
 }
 
 export class PermissionDenied extends AgentSecretsError {
-  constructor(
-    operation: string,
-    opts?: { requiredRole?: string; currentRole?: string },
-  ) {
+  constructor(operation: string, opts?: { requiredRole?: string; currentRole?: string }) {
     const parts = [`Permission denied for '${operation}'.`];
     if (opts?.requiredRole) parts.push(`Required: ${opts.requiredRole}.`);
     if (opts?.currentRole) parts.push(`Current: ${opts.currentRole}.`);
@@ -243,9 +238,7 @@ export class PermissionDenied extends AgentSecretsError {
 
 export class WorkspaceNotFound extends AgentSecretsError {
   constructor(name: string) {
-    super(`Workspace '${name}' not found.`, {
-      fixHint: "agentsecrets workspace list",
-    });
+    super(`Workspace '${name}' not found.`, { fixHint: "agentsecrets workspace list" });
     this.name = "WorkspaceNotFound";
   }
 }
@@ -253,9 +246,7 @@ export class WorkspaceNotFound extends AgentSecretsError {
 export class ProjectNotFound extends AgentSecretsError {
   constructor(name: string, workspace?: string) {
     const ctx = workspace ? ` in workspace '${workspace}'` : "";
-    super(`Project '${name}' not found${ctx}.`, {
-      fixHint: "agentsecrets project list",
-    });
+    super(`Project '${name}' not found${ctx}.`, { fixHint: "agentsecrets project list" });
     this.name = "ProjectNotFound";
   }
 }

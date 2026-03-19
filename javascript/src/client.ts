@@ -24,12 +24,7 @@ import {
   type SpawnResult,
   type ProxyStatus,
 } from "./types.js";
-import {
-  buildProxyHeaders,
-  DEFAULT_PORT,
-  PROXY_PATH,
-  HEALTH_PATH,
-} from "./proxy.js";
+import { buildProxyHeaders, DEFAULT_PORT, PROXY_PATH, HEALTH_PATH } from "./proxy.js";
 import { which } from "./which.js";
 
 const execFileAsync = promisify(execFile);
@@ -47,26 +42,19 @@ export interface AgentSecretsConfig {
 
 // ─── Error mapping ────────────────────────────────────────────────────────────
 
-function mapProxyError(
-  statusCode: number,
-  bodyText: string,
-  url: string,
-): AgentSecretsError {
+function mapProxyError(statusCode: number, bodyText: string, url: string): AgentSecretsError {
   // Truncate body before storing — upstream errors may echo credential values
-  const truncated =
-    bodyText.length > 500 ? bodyText.slice(0, 500) + "…" : bodyText;
+  const truncated = bodyText.length > 500 ? bodyText.slice(0, 500) + "…" : bodyText;
 
   let errorMsg = truncated;
   try {
     const data = JSON.parse(truncated) as Record<string, string>;
     errorMsg = data["error"] ?? data["message"] ?? truncated;
-  } catch {
-    /* use raw text */
-  }
+  } catch { /* use raw text */ }
 
   if (statusCode === 400) {
     return new AgentSecretsError(
-      `Proxy rejected the request (400): ${errorMsg} — check that you passed an auth style (bearer, basic, header, query, bodyField, or formField).`,
+      `Proxy rejected the request (400): ${errorMsg} — check that you passed an auth style (bearer, basic, header, query, bodyField, or formField).`
     );
   }
 
@@ -78,9 +66,7 @@ function mapProxyError(
     try {
       const raw = JSON.parse(truncated) as Record<string, string>;
       domain = raw["domain"] ?? raw["message"] ?? errorMsg;
-    } catch {
-      /* use errorMsg */
-    }
+    } catch { /* use errorMsg */ }
     return new DomainNotAllowed(domain);
   }
 
@@ -114,13 +100,11 @@ async function healthCheck(port: number): Promise<ProxyStatus> {
   const binary = await which("agentsecrets");
   if (!binary) throw new CLINotFound();
   try {
-    const { stdout } = await execFileAsync(binary, ["proxy", "status"], {
-      timeout: 5_000,
-    });
+    const { stdout } = await execFileAsync(binary, ["proxy", "status"], { timeout: 5_000 });
     // proxy status exits 0 if running, non-zero if not.
     // stdout may contain port/project info — parse best-effort
-    const portMatch = stdout.match(/port[\s:]+([0-9]+)/i);
-    const projMatch = stdout.match(/project[\s:]+([\w-]+)/i);
+    const portMatch  = stdout.match(/port[\s:]+([0-9]+)/i);
+    const projMatch  = stdout.match(/project[\s:]+([\w-]+)/i);
     const result: ProxyStatus = {
       running: true,
       port: portMatch ? parseInt(portMatch[1]!, 10) : port,
@@ -151,17 +135,14 @@ async function autoStartProxy(port: number): Promise<void> {
   }).unref(); // Detach from parent — process runs independently
 }
 
-async function waitForReady(
-  port: number,
-  timeoutMs = 10_000,
-): Promise<ProxyStatus> {
+async function waitForReady(port: number, timeoutMs = 10_000): Promise<ProxyStatus> {
   const deadline = Date.now() + timeoutMs;
   let delay = 250;
   while (Date.now() < deadline) {
     try {
       return await healthCheck(port);
     } catch {
-      await new Promise((r) => setTimeout(r, delay));
+      await new Promise(r => setTimeout(r, delay));
       delay = Math.min(delay * 1.5, 2_000);
     }
   }
@@ -183,9 +164,7 @@ class Mutex {
     // so subsequent queued items still run). The returned promise carries the
     // real result or error back to the caller.
     let resolve!: () => void;
-    const slot = new Promise<void>((r) => {
-      resolve = r;
-    });
+    const slot = new Promise<void>(r => { resolve = r; });
     const result = this._queue.then(() => fn()).finally(resolve);
     this._queue = slot;
     return result;
@@ -208,12 +187,10 @@ export class AgentSecrets {
 
   constructor(config: AgentSecretsConfig = {}) {
     const envPort = parseInt(process.env["AGENTSECRETS_PORT"] ?? "", 10);
-    this.port =
-      config.port ??
-      (Number.isFinite(envPort) && envPort > 0 ? envPort : DEFAULT_PORT);
+    this.port = config.port ?? (Number.isFinite(envPort) && envPort > 0 ? envPort : DEFAULT_PORT);
     this.autoStart = config.autoStart ?? true;
     this._workspace = config.workspace ?? process.env["AGENTSECRETS_WORKSPACE"];
-    this._project = config.project ?? process.env["AGENTSECRETS_PROJECT"];
+    this._project   = config.project   ?? process.env["AGENTSECRETS_PROJECT"];
   }
 
   private ensureReady(): Promise<ProxyStatus> {
@@ -240,10 +217,10 @@ export class AgentSecrets {
   async call<T = unknown>(opts: CallOptions): Promise<AgentSecretsResponse<T>> {
     await this.ensureReady();
 
-    const method = opts.method ?? "GET";
-    const port = opts.port ?? this.port;
-    const proxyUrl = `http://localhost:${port}${PROXY_PATH}`;
-    const timeout = opts.timeout ?? 30_000;
+    const method    = opts.method ?? "GET";
+    const port      = opts.port ?? this.port;
+    const proxyUrl  = `http://localhost:${port}${PROXY_PATH}`;
+    const timeout   = opts.timeout ?? 30_000;
 
     // buildProxyHeaders validates the URL and sanitises injection keys
     const proxyHeaders = buildProxyHeaders(opts, method);
@@ -282,8 +259,7 @@ export class AgentSecrets {
       res = await fetch(proxyUrl, fetchInit);
     } catch (err) {
       const e = err as NodeJS.ErrnoException;
-      const code =
-        e.code ?? (e.cause as NodeJS.ErrnoException | undefined)?.code;
+      const code = e.code ?? (e.cause as NodeJS.ErrnoException | undefined)?.code;
       if (code === "ECONNREFUSED") {
         this._ready = null; // proxy went down — reset so next call retries
         throw new AgentSecretsNotRunning(port);
@@ -292,8 +268,8 @@ export class AgentSecrets {
     }
 
     const durationMs = Date.now() - start;
-    const bodyBytes = new Uint8Array(await res.arrayBuffer());
-    const bodyText = new TextDecoder().decode(bodyBytes);
+    const bodyBytes  = new Uint8Array(await res.arrayBuffer());
+    const bodyText   = new TextDecoder().decode(bodyBytes);
     // Any proxy-level 5xx could mean the proxy is degraded — reset cache
     if (res.status >= 500) this._ready = null;
 
@@ -302,9 +278,7 @@ export class AgentSecrets {
     }
 
     const headers: Record<string, string> = {};
-    res.headers.forEach((v, k) => {
-      headers[k] = v;
-    });
+    res.headers.forEach((v, k) => { headers[k] = v; });
 
     return new AgentSecretsResponse<T>({
       statusCode: res.status,
@@ -312,9 +286,7 @@ export class AgentSecrets {
       body: bodyBytes,
       // Prefer the X-AS-Redacted header if present (more reliable than body scan)
       // Fall back to body string scan for backwards compatibility
-      redacted:
-        headers["x-as-redacted"] === "true" ||
-        bodyText.includes("[REDACTED_BY_AGENTSECRETS]"),
+      redacted: headers["x-as-redacted"] === "true" || bodyText.includes("[REDACTED_BY_AGENTSECRETS]"),
       durationMs,
     });
   }
@@ -362,22 +334,14 @@ export class AgentSecrets {
       let stderr = "";
 
       if (opts.capture !== false) {
-        proc.stdout?.on("data", (chunk: Buffer) => {
-          stdout += chunk.toString();
-        });
-        proc.stderr?.on("data", (chunk: Buffer) => {
-          stderr += chunk.toString();
-        });
+        proc.stdout?.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+        proc.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
       }
 
       proc.on("close", (code, signal) => {
         if (signal === "SIGTERM" && opts.timeout) {
           // Timeout fired — process was killed. Surface this clearly.
-          resolve({
-            exitCode: 124,
-            stdout,
-            stderr: `Process timed out after ${opts.timeout}ms`,
-          });
+          resolve({ exitCode: 124, stdout, stderr: `Process timed out after ${opts.timeout}ms` });
         } else {
           resolve({ exitCode: code ?? 1, stdout, stderr });
         }
@@ -385,11 +349,7 @@ export class AgentSecrets {
 
       proc.on("error", (err: NodeJS.ErrnoException) => {
         if (err.code === "ENOENT") {
-          resolve({
-            exitCode: 127,
-            stdout: "",
-            stderr: `agentsecrets binary not found: ${err.message}`,
-          });
+          resolve({ exitCode: 127, stdout: "", stderr: `agentsecrets binary not found: ${err.message}` });
         } else {
           resolve({ exitCode: 1, stdout: "", stderr: err.message });
         }
@@ -400,20 +360,13 @@ export class AgentSecrets {
   // ── Health ────────────────────────────────────────────────────────────────
 
   async isProxyRunning(): Promise<boolean> {
-    try {
-      await healthCheck(this.port);
-      return true;
-    } catch {
-      return false;
-    }
+    try { await healthCheck(this.port); return true; }
+    catch { return false; }
   }
 
   async proxyStatus(): Promise<ProxyStatus> {
-    try {
-      return await healthCheck(this.port);
-    } catch {
-      return { running: false, port: this.port };
-    }
+    try { return await healthCheck(this.port); }
+    catch { return { running: false, port: this.port }; }
   }
 
   // ── Context helpers ───────────────────────────────────────────────────────
@@ -429,10 +382,7 @@ export class AgentSecrets {
       // Read current workspace from CLI rather than relying on cached state
       let previous: string | undefined;
       try {
-        const { stdout } = await execFileAsync("agentsecrets", [
-          "workspace",
-          "current",
-        ]);
+        const { stdout } = await execFileAsync("agentsecrets", ["workspace", "current"]);
         previous = stdout.trim() || undefined;
       } catch {
         previous = this._workspace;
@@ -444,11 +394,7 @@ export class AgentSecrets {
         return await fn();
       } finally {
         if (previous) {
-          await execFileAsync("agentsecrets", [
-            "workspace",
-            "switch",
-            previous,
-          ]).catch(() => {});
+          await execFileAsync("agentsecrets", ["workspace", "switch", previous]).catch(() => {});
           this._workspace = previous;
         }
       }
@@ -463,10 +409,7 @@ export class AgentSecrets {
     return this._contextMutex.run(async () => {
       let previous: string | undefined;
       try {
-        const { stdout } = await execFileAsync("agentsecrets", [
-          "project",
-          "current",
-        ]);
+        const { stdout } = await execFileAsync("agentsecrets", ["project", "current"]);
         previous = stdout.trim() || undefined;
       } catch {
         previous = this._project;
@@ -478,11 +421,7 @@ export class AgentSecrets {
         return await fn();
       } finally {
         if (previous) {
-          await execFileAsync("agentsecrets", [
-            "project",
-            "use",
-            previous,
-          ]).catch(() => {});
+          await execFileAsync("agentsecrets", ["project", "use", previous]).catch(() => {});
           this._project = previous;
         }
       }
